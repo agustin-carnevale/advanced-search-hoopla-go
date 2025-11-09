@@ -138,6 +138,12 @@ func (idx *InvertedIndex) GetBM25IDF(term string) float64 {
 	return math.Log((float64(N)-float64(df)+0.5)/(float64(df)+0.5) + 1)
 }
 
+func (idx *InvertedIndex) GetBM25TF(docID int, term string, k1 float64) float64 {
+	tf := float64(idx.GetTF(docID, term))
+
+	return (tf * (k1 + 1)) / (tf + k1)
+}
+
 func (idx *InvertedIndex) Build() error {
 	movies, err := fs.LoadMovies()
 	if err != nil {
