@@ -127,19 +127,18 @@ func (idx *InvertedIndex) Save() error {
 	return nil
 }
 
-func Load() (*InvertedIndex, error) {
+func (idx *InvertedIndex) Load() error {
 	f, err := os.Open(fs.IndexPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open index file: %w", err)
+		return fmt.Errorf("failed to open index file: %w", err)
 	}
 	defer f.Close()
 
-	var idx InvertedIndex
 	decoder := gob.NewDecoder(f)
 
-	if err := decoder.Decode(&idx); err != nil {
-		return nil, fmt.Errorf("failed to decode index: %w", err)
+	if err := decoder.Decode(idx); err != nil {
+		return fmt.Errorf("failed to decode index: %w", err)
 	}
 
-	return &idx, nil
+	return nil
 }
