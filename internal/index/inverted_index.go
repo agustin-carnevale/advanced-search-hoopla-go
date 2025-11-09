@@ -65,17 +65,53 @@ func (idx *InvertedIndex) GetDocuments(term string) []model.Movie {
 }
 
 func (idx *InvertedIndex) GetTF(docID int, term string) int {
+	stopWords, err := fs.LoadStopWords()
+	if err != nil {
+		log.Fatalf("Error loading stop words: could not tokenize term.")
+		return 0
+	}
+	tokens := tokenizer.Tokenize(term, stopWords)
+
+	if len(tokens) == 0 {
+		return 0
+	}
+
+	if len(tokens) > 1 {
+		log.Fatalf("Error at get_tf(): term has too many tokens.")
+		return 0
+	}
+
+	t := tokens[0]
 	tfMap, exists := idx.TermFrequencies[docID]
 	if !exists {
 		return 0
 	}
 
-	return tfMap[term]
+	return tfMap[t]
 }
 
 func (idx *InvertedIndex) GetIDF(term string) float64 {
 	docCount := len(idx.DocMap)
-	termDocCount := len(idx.Index[term])
+
+	stopWords, err := fs.LoadStopWords()
+	if err != nil {
+		log.Fatalf("Error loading stop words: could not tokenize term.")
+		return 0
+	}
+	tokens := tokenizer.Tokenize(term, stopWords)
+
+	if len(tokens) == 0 {
+		return 0
+	}
+
+	if len(tokens) > 1 {
+		log.Fatalf("Error at get_idf(): term has too many tokens.")
+		return 0
+	}
+
+	t := tokens[0]
+
+	termDocCount := len(idx.Index[t])
 
 	return math.Log(float64(docCount+1) / float64(termDocCount+1))
 }
