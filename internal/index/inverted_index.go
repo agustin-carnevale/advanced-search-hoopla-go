@@ -3,6 +3,7 @@ package index
 import (
 	"encoding/gob"
 	"fmt"
+	"log"
 	"math"
 	"os"
 	"slices"
@@ -81,7 +82,22 @@ func (idx *InvertedIndex) GetIDF(term string) float64 {
 
 func (idx *InvertedIndex) GetBM25IDF(term string) float64 {
 	N := len(idx.DocMap)
-	df := len(idx.Index[term])
+
+	stopWords, err := fs.LoadStopWords()
+	if err != nil {
+		log.Fatalf("Failed to load stop words")
+		return 0.0
+	}
+
+	tokens := tokenizer.Tokenize(term, stopWords)
+	if len(tokens) != 1 {
+		log.Fatalf("Error at get_bm25_idf(): term has not a single token")
+		return 0.0
+	}
+
+	t := tokens[0]
+	docIDs := idx.Index[t]
+	df := len(docIDs)
 
 	return math.Log((float64(N)-float64(df)+0.5)/(float64(df)+0.5) + 1)
 }
