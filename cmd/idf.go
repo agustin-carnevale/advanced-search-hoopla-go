@@ -13,7 +13,7 @@ import (
 
 // idfCmd represents the idf command
 var idfCmd = &cobra.Command{
-	Use:   "idf",
+	Use:   "idf <term>",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:

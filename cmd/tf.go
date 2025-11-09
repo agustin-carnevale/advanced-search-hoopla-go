@@ -14,7 +14,7 @@ import (
 
 // tfCmd represents the tf command
 var tfCmd = &cobra.Command{
-	Use:   "tf",
+	Use:   "tf <docID> <term>",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
