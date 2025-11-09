@@ -1,12 +1,14 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"fmt"
+	"log"
+	"strconv"
 
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/index"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +23,27 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("tf called")
+		if len(args) < 2 {
+			fmt.Println("❌ Please provide a docID and a term.")
+			return
+		}
+		docIDString := args[0]
+		docID, err := strconv.Atoi(docIDString)
+		if err != nil {
+			log.Fatalf("❌ docID should be an int: %v\n", err)
+		}
+
+		term := args[1]
+
+		// load index
+		idx := index.NewInvertedIndex()
+		if err := idx.Load(); err != nil {
+			log.Fatalf("❌ Failed to load index: %v\n", err)
+		}
+
+		tf := idx.GetTF(docID, term)
+
+		fmt.Println("The TF is:", tf)
 	},
 }
 
