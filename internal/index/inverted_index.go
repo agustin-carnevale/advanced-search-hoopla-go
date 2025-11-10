@@ -17,6 +17,7 @@ type InvertedIndex struct {
 	Index           map[string]map[int]struct{} // term -> set of doc IDs
 	DocMap          map[int]model.Movie         // docID -> movie
 	TermFrequencies map[int]map[string]int      // docID -> term -> count
+	DocLengths      map[int]int                 // docID -> docLength
 }
 
 func NewInvertedIndex() *InvertedIndex {
@@ -24,6 +25,7 @@ func NewInvertedIndex() *InvertedIndex {
 		Index:           make(map[string]map[int]struct{}),
 		DocMap:          make(map[int]model.Movie),
 		TermFrequencies: make(map[int]map[string]int),
+		DocLengths:      make(map[int]int),
 	}
 }
 
@@ -41,6 +43,7 @@ func (idx *InvertedIndex) addDocument(docID int, text string, stopWords map[stri
 		idx.Index[t][docID] = struct{}{}
 	}
 	idx.TermFrequencies[docID] = tf
+	idx.DocLengths[docID] = len(tokens)
 }
 
 func (idx *InvertedIndex) GetDocuments(term string) []model.Movie {
@@ -62,6 +65,21 @@ func (idx *InvertedIndex) GetDocuments(term string) []model.Movie {
 	})
 
 	return movies
+}
+
+func (idx *InvertedIndex) getAvgDocLength() float64 {
+	count := len(idx.DocLengths)
+	if count == 0 {
+		return 0.0
+	}
+
+	sum := 0
+	for _, value := range idx.DocLengths {
+		sum += value
+	}
+
+	return float64(sum) / float64(count)
+
 }
 
 func (idx *InvertedIndex) GetTF(docID int, term string) int {
@@ -138,10 +156,19 @@ func (idx *InvertedIndex) GetBM25IDF(term string) float64 {
 	return math.Log((float64(N)-float64(df)+0.5)/(float64(df)+0.5) + 1)
 }
 
-func (idx *InvertedIndex) GetBM25TF(docID int, term string, k1 float64) float64 {
+func (idx *InvertedIndex) GetBM25TF(docID int, term string, k1 float64, b float64) float64 {
 	tf := float64(idx.GetTF(docID, term))
 
-	return (tf * (k1 + 1)) / (tf + k1)
+	avgDocLength := idx.getAvgDocLength()
+	docLength := idx.DocLengths[docID]
+
+	// Length normalization factor
+	lengthNorm := 1 - b + b*(float64(docLength)/avgDocLength)
+
+	// Apply to term frequency
+	bm25tf := (tf * (k1 + 1)) / (tf + k1*lengthNorm)
+
+	return bm25tf
 }
 
 func (idx *InvertedIndex) Build() error {

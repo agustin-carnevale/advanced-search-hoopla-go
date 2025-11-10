@@ -14,7 +14,7 @@ import (
 
 // bm25tfCmd represents the bm25tf command
 var bm25tfCmd = &cobra.Command{
-	Use:   "bm25tf <docID> <term> [k1]",
+	Use:   "bm25tf <docID> <term> [k1] [b]",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -44,13 +44,22 @@ to quickly create a Cobra application.`,
 			}
 		}
 
+		b := 0.75
+		if len(args) > 3 {
+			bString := args[3]
+			b, err = strconv.ParseFloat(bString, 64)
+			if err != nil {
+				log.Fatalf("❌ b should be a float: %v\n", err)
+			}
+		}
+
 		// load index
 		idx := index.NewInvertedIndex()
 		if err := idx.Load(); err != nil {
 			log.Fatalf("❌ Failed to load index: %v\n", err)
 		}
 
-		bm25tf := idx.GetBM25TF(docID, term, k1)
+		bm25tf := idx.GetBM25TF(docID, term, k1, b)
 
 		fmt.Printf("BM25 TF score of '%s' in document '%d': %.2f\n", term, docID, bm25tf)
 
