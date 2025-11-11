@@ -13,10 +13,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// bm25searchCmd represents the bm25search command
-var bm25searchCmd = &cobra.Command{
-	Use:   "bm25search query <limit>",
-	Short: "A brief description of your command",
+// bm25searchPCmd represents the bm25searchP command
+var bm25searchPCmd = &cobra.Command{
+	Use:   "bm25searchP query <limit>",
+	Short: "Parallel implementation of bm25search",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -49,10 +49,10 @@ to quickly create a Cobra application.`,
 		// Benchmark (measure time) just for testing purposes
 		start := time.Now()
 
-		results := idx.Bm25Search(query, limit)
+		results := idx.Bm25SearchParallel(query, limit)
 
 		elapsed := time.Since(start)
-		fmt.Printf("Bm25Search execution time: %s\n", elapsed)
+		fmt.Printf("Bm25SearchParallel execution time: %s\n", elapsed)
 
 		for i, doc := range results {
 			fmt.Printf("%d. (%d) %s - Score: %.2f\n", i+1, doc.DocID, doc.Movie.Title, doc.Score)
@@ -62,15 +62,15 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	rootCmd.AddCommand(bm25searchCmd)
+	rootCmd.AddCommand(bm25searchPCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// bm25searchCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// bm25searchPCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// bm25searchCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// bm25searchPCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

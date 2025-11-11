@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"runtime"
 	"slices"
 	"sort"
 
@@ -238,6 +239,69 @@ func (idx *InvertedIndex) Build() error {
 	}
 
 	return nil
+}
+
+// Distributes document scoring across multiple goroutines.
+// We use a worker pool to avoid spawning thousands of goroutines at once.
+func (idx *InvertedIndex) Bm25SearchParallel(query string, limit int) []SearchResult {
+	stopWords, err := fs.LoadStopWords()
+	if err != nil {
+		log.Fatalf("Error loading stop words: could not tokenize term.")
+	}
+
+	qTokens := tokenizer.Tokenize(query, stopWords)
+
+	type scoredDoc struct {
+		DocID int
+		Score float64
+	}
+
+	docCount := len(idx.DocMap)
+	resultsChan := make(chan scoredDoc, docCount)
+
+	workerCount := runtime.NumCPU() // use all cores
+	jobs := make(chan int, docCount)
+
+	// --- Worker goroutines ---
+	for w := 0; w < workerCount; w++ {
+		go func() {
+			for docID := range jobs {
+				var score float64
+				for _, t := range qTokens {
+					score += idx.bm25Score(docID, t)
+				}
+				resultsChan <- scoredDoc{DocID: docID, Score: score}
+			}
+		}()
+	}
+
+	// --- Push doc IDs into the jobs queue ---
+	for docID := range idx.DocMap {
+		jobs <- docID
+	}
+	close(jobs)
+
+	// --- Collect results ---
+	results := make([]SearchResult, 0, docCount)
+	for i := 0; i < docCount; i++ {
+		r := <-resultsChan
+		results = append(results, SearchResult{
+			DocID: r.DocID,
+			Score: r.Score,
+			Movie: idx.DocMap[r.DocID],
+		})
+	}
+	close(resultsChan)
+
+	// --- Sort by score DESC ---
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+
+	if limit < len(results) {
+		return results[:limit]
+	}
+	return results
 }
 
 func (idx *InvertedIndex) Save() error {
