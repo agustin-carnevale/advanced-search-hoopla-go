@@ -262,6 +262,8 @@ func (idx *InvertedIndex) Bm25SearchParallel(query string, limit int) []SearchRe
 	workerCount := runtime.NumCPU() // use all cores
 	jobs := make(chan int, docCount)
 
+	// fmt.Println("Worker Count at Jobs pool: ", workerCount)
+
 	// --- Worker goroutines ---
 	for w := 0; w < workerCount; w++ {
 		go func() {
@@ -292,6 +294,9 @@ func (idx *InvertedIndex) Bm25SearchParallel(query string, limit int) []SearchRe
 		})
 	}
 	close(resultsChan)
+
+	// Note: the whole sorting and slicing to the first 5/limit elements could be improve using
+	// other data structures to get the max 5 elements more efficiently. However is not the point or required here.
 
 	// --- Sort by score DESC ---
 	sort.Slice(results, func(i, j int) bool {
