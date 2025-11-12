@@ -1,7 +1,7 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 */
-package cmd
+package keyword
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ to quickly create a Cobra application.`,
 }
 
 func init() {
-	rootCmd.AddCommand(buildCmd)
+	KeywordCmd.AddCommand(buildCmd)
 
 	// Here you will define your flags and configuration settings.
 
