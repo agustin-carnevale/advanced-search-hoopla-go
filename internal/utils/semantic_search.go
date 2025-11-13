@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ollama/ollama/api"
+	ollama "github.com/ollama/ollama/api"
 )
 
 type SemanticSearch struct {
 	Model  string
-	client *api.Client
+	client *ollama.Client
 }
 
 func NewSemanticSearch(modelName string) (*SemanticSearch, error) {
-	client, err := api.ClientFromEnvironment()
+	client, err := ollama.ClientFromEnvironment()
 	if err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func NewSemanticSearch(modelName string) (*SemanticSearch, error) {
 
 func (ss *SemanticSearch) VerifyModel() error {
 	fmt.Println("Model loaded:", ss.Model)
-	resp, err := ss.client.Embeddings(context.Background(), &api.EmbeddingRequest{
+	resp, err := ss.client.Embeddings(context.Background(), &ollama.EmbeddingRequest{
 		Model:  ss.Model,
 		Prompt: "test",
 	})
@@ -35,4 +35,16 @@ func (ss *SemanticSearch) VerifyModel() error {
 
 	fmt.Println("Vector dimensions:", len(resp.Embedding))
 	return nil
+}
+
+func (ss *SemanticSearch) EmbedText(text string) ([]float64, error) {
+	resp, err := ss.client.Embeddings(context.Background(), &ollama.EmbeddingRequest{
+		Model:  ss.Model,
+		Prompt: text,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Embedding, nil
 }
