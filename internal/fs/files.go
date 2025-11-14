@@ -17,10 +17,11 @@ const (
 var (
 	ProjectRoot, _ = getProjectRoot()
 
-	DataPath      = filepath.Join(ProjectRoot, "data", "movies.json")
-	StopWordsPath = filepath.Join(ProjectRoot, "data", "stopwords.txt")
-	CacheDir      = filepath.Join(ProjectRoot, "cache")
-	IndexPath     = filepath.Join(CacheDir, "index.gob")
+	DataPath       = filepath.Join(ProjectRoot, "data", "movies.json")
+	StopWordsPath  = filepath.Join(ProjectRoot, "data", "stopwords.txt")
+	CacheDir       = filepath.Join(ProjectRoot, "cache")
+	IndexPath      = filepath.Join(CacheDir, "index.gob")
+	EmbeddingsPath = filepath.Join(CacheDir, "movie_embeddings.gob")
 )
 
 // getProjectRoot walks up until it finds go.mod (project base)
