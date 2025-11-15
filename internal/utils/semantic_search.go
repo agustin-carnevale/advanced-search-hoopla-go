@@ -10,8 +10,10 @@ import (
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/model"
-	"github.com/ollama/ollama/api"
+
 	ollama "github.com/ollama/ollama/api"
+	"github.com/vbauerster/mpb/v8"
+	"github.com/vbauerster/mpb/v8/decor"
 )
 
 type SemanticSearch struct {
@@ -71,17 +73,24 @@ func (ss *SemanticSearch) BuildEmbeddings() ([][]float64, error) {
 	}
 
 	// Generate embeddings one by one (Ollama does not batch today)
-	embeddings := make([][]float64, 0, len(strings))
-	for i, text := range strings {
-		fmt.Println("Creating embedding for doc:", i)
-		resp, err := ss.client.Embeddings(context.Background(), &api.EmbeddingRequest{
-			Model:  ss.Model,
-			Prompt: text,
-		})
-		if err != nil {
-			return nil, err
-		}
-		embeddings = append(embeddings, resp.Embedding)
+	// embeddings := make([][]float64, 0, len(strings))
+	// for i, text := range strings {
+	// 	fmt.Println("Creating embedding for doc:", i)
+	// 	resp, err := ss.client.Embeddings(context.Background(), &api.EmbeddingRequest{
+	// 		Model:  ss.Model,
+	// 		Prompt: text,
+	// 	})
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	embeddings = append(embeddings, resp.Embedding)
+	// }
+	// ss.Embeddings = embeddings
+
+	// Parallel embeddings creation
+	embeddings, err := ss.createEmbeddingsParallel(strings)
+	if err != nil {
+		return nil, err
 	}
 	ss.Embeddings = embeddings
 
@@ -116,7 +125,7 @@ func (ss *SemanticSearch) loadEmbeddings() error {
 	return decoder.Decode(&ss.Embeddings)
 }
 
-func (ss *SemanticSearch) CreateEmbeddingsParallel(strings []string) ([][]float64, error) {
+func (ss *SemanticSearch) createEmbeddingsParallel(strings []string) ([][]float64, error) {
 	docCount := len(strings)
 	workerCount := runtime.NumCPU()
 
@@ -131,14 +140,28 @@ func (ss *SemanticSearch) CreateEmbeddingsParallel(strings []string) ([][]float6
 	errChan := make(chan error, 1) // allow only 1 error to signal shutdown
 	wg := sync.WaitGroup{}
 
+	// === Progress bar setup ===
+	p := mpb.New(mpb.WithWidth(60))
+	bar := p.AddBar(int64(docCount),
+		mpb.PrependDecorators(
+			decor.Name("Embedding: "),
+			decor.CountersNoUnit("%d/%d"),
+		),
+		mpb.AppendDecorators(
+			decor.Percentage(),
+		),
+	)
+
 	// Worker function
-	worker := func() {
+	worker := func(id int) {
 		defer wg.Done()
 
 		for idx := range jobs {
 			text := strings[idx]
 
-			resp, err := ss.client.Embeddings(context.Background(), &api.EmbeddingRequest{
+			// fmt.Printf("Worker %d processing doc number: %d\n", id, idx+1)
+
+			resp, err := ss.client.Embeddings(context.Background(), &ollama.EmbeddingRequest{
 				Model:  ss.Model,
 				Prompt: text,
 			})
@@ -152,13 +175,16 @@ func (ss *SemanticSearch) CreateEmbeddingsParallel(strings []string) ([][]float6
 			}
 
 			embeddings[idx] = resp.Embedding
+
+			// Increment progress bar (it handles it thread-safely internally)
+			bar.Increment()
 		}
 	}
 
 	// Start workers
 	wg.Add(workerCount)
 	for i := 0; i < workerCount; i++ {
-		go worker()
+		go worker(i + 1)
 	}
 
 	// Push jobs
@@ -180,6 +206,9 @@ func (ss *SemanticSearch) CreateEmbeddingsParallel(strings []string) ([][]float6
 		return nil, err
 	case <-done:
 	}
+
+	// Must wait for mpb to flush + close
+	p.Wait()
 
 	return embeddings, nil
 }
