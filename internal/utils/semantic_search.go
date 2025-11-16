@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"math"
 	"os"
 	"runtime"
+	"sort"
 	"sync"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
@@ -15,6 +17,17 @@ import (
 	"github.com/vbauerster/mpb/v8"
 	"github.com/vbauerster/mpb/v8/decor"
 )
+
+type SimilarityScore struct {
+	Score float64
+	Movie model.Movie
+}
+
+type SemanticSearchResult struct {
+	Score       float64
+	Title       string
+	Description string
+}
 
 type SemanticSearch struct {
 	Model       string
@@ -232,4 +245,59 @@ func (ss *SemanticSearch) LoadOrCreateEmbeddings(docs []model.Movie) ([][]float6
 
 	// Else create them
 	return ss.BuildEmbeddings()
+}
+
+func (ss *SemanticSearch) Search(query string, limit int) ([]SemanticSearchResult, error) {
+	if len(ss.Embeddings) == 0 || len(ss.Embeddings) != len(ss.Documents) {
+		return nil, fmt.Errorf("No embeddings loaded. Call `load_or_create_embeddings` first.")
+	}
+
+	query_embedding, err := ss.EmbedText(query)
+	if err != nil {
+		return nil, fmt.Errorf("❌ Failed to create embedding of the query: %v\n", err)
+	}
+
+	similarities := make([]SimilarityScore, 0, len(ss.Embeddings))
+
+	for i, doc_embedding := range ss.Embeddings {
+		similarity_score := CosineSimilarity(query_embedding, doc_embedding)
+		similarities = append(similarities, SimilarityScore{
+			Score: similarity_score,
+			Movie: ss.Documents[i],
+		})
+	}
+
+	sort.Slice(similarities, func(i, j int) bool {
+		return similarities[i].Score > similarities[j].Score
+	})
+
+	results := make([]SemanticSearchResult, 0, limit)
+	for _, item := range similarities[:limit] {
+		results = append(results, SemanticSearchResult{
+			Score:       item.Score,
+			Title:       item.Movie.Title,
+			Description: item.Movie.Description,
+		})
+	}
+
+	return results, nil
+}
+
+func CosineSimilarity(vec1, vec2 []float64) float64 {
+	if len(vec1) != len(vec2) {
+		return 0.0 // or panic, but returning 0 is safer
+	}
+
+	var dot, norm1, norm2 float64
+	for i := range vec1 {
+		dot += vec1[i] * vec2[i]
+		norm1 += vec1[i] * vec1[i]
+		norm2 += vec2[i] * vec2[i]
+	}
+
+	if norm1 == 0 || norm2 == 0 {
+		return 0.0
+	}
+
+	return dot / (math.Sqrt(norm1) * math.Sqrt(norm2))
 }
