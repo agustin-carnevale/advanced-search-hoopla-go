@@ -11,9 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// embedQueryCmd represents the embedQuery command
 var embedQueryCmd = &cobra.Command{
-	Use:   "embedQuery",
+	Use:   "embedQuery <query>",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -46,14 +45,4 @@ to quickly create a Cobra application.`,
 
 func init() {
 	SemanticCmd.AddCommand(embedQueryCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// embedQueryCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// embedQueryCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
