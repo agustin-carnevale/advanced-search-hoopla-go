@@ -5,16 +5,17 @@ package semantic
 
 import (
 	"fmt"
-	"log"
-	"strconv"
 	"strings"
 
 	"github.com/spf13/cobra"
 )
 
+var chunkSize int
+var overlap int
+
 // chunkCmd represents the chunk command
 var chunkCmd = &cobra.Command{
-	Use:   "chunk <text> [chunkSize]",
+	Use:   "chunk <text> [--chunkSize] [--overlap]",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -28,26 +29,25 @@ to quickly create a Cobra application.`,
 			return
 		}
 		text := args[0]
-
-		chunkSize := 200
-		if len(args) > 1 {
-			cs, err := strconv.Atoi(args[1])
-			if err != nil {
-				log.Fatalf("❌ chunkSize should be an int: %v\n", err)
-			}
-			chunkSize = cs
-		}
+		fmt.Printf("Chunking %d characters\n", len(text))
 
 		words := strings.Fields(text)
+		if len(words) == 0 {
+			return
+		}
 
 		var chunks []string
-		for i := 0; i < len(words); i += chunkSize {
-			end := i + chunkSize
-			if end > len(words) {
-				end = len(words)
-			}
-			c := strings.Join(words[i:end], " ")
+		start := 0
+		end := min(chunkSize, len(words))
+		c := strings.Join(words[start:end], " ")
+		chunks = append(chunks, c)
+
+		start = min(chunkSize-overlap, len(words))
+		for start+overlap < len(words) {
+			end = min(start+chunkSize, len(words))
+			c = strings.Join(words[start:end], " ")
 			chunks = append(chunks, c)
+			start = end - overlap
 		}
 
 		for i, chunk := range chunks {
@@ -59,13 +59,6 @@ to quickly create a Cobra application.`,
 func init() {
 	SemanticCmd.AddCommand(chunkCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// chunkCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// chunkCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	chunkCmd.Flags().IntVar(&chunkSize, "chunk-size", 200, "Specify the chunk size in words")
+	chunkCmd.Flags().IntVar(&overlap, "overlap", 0, "Specify number of words to overlap between chunks")
 }
