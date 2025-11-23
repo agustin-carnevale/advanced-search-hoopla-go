@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"runtime"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
@@ -300,4 +302,29 @@ func CosineSimilarity(vec1, vec2 []float64) float64 {
 	}
 
 	return dot / (math.Sqrt(norm1) * math.Sqrt(norm2))
+}
+
+func SemanticChunk(text string, maxChunkSize int, overlap int) []string {
+	// TODO: this is removing the punctuation (add it back?)
+	sentenceRegex := regexp.MustCompile(`([.!?])\s+`)
+	sentences := sentenceRegex.Split(text, -1)
+	if len(sentences) == 0 {
+		return []string{}
+	}
+
+	var chunks []string
+	start := 0
+	end := min(maxChunkSize, len(sentences))
+	c := strings.Join(sentences[start:end], " ")
+	chunks = append(chunks, c)
+
+	start = min(maxChunkSize-overlap, len(sentences))
+	for start+overlap < len(sentences) {
+		end = min(start+maxChunkSize, len(sentences))
+		c = strings.Join(sentences[start:end], " ")
+		chunks = append(chunks, c)
+		start = end - overlap
+	}
+
+	return chunks
 }

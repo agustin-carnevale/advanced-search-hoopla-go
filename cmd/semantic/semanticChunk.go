@@ -5,14 +5,13 @@ package semantic
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
 
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 func newSemanticChunkCmd() *cobra.Command {
-	var chunkSize int
+	var maxChunkSize int
 	var overlap int
 
 	cmd := &cobra.Command{
@@ -32,26 +31,7 @@ to quickly create a Cobra application.`,
 			text := args[0]
 			fmt.Printf("Chunking %d characters\n", len(text))
 
-			// TODO: this is removing the punctuation (add it back?)
-			sentenceRegex := regexp.MustCompile(`([.!?])\s+`)
-			sentences := sentenceRegex.Split(text, -1)
-			if len(sentences) == 0 {
-				return
-			}
-
-			var chunks []string
-			start := 0
-			end := min(chunkSize, len(sentences))
-			c := strings.Join(sentences[start:end], " ")
-			chunks = append(chunks, c)
-
-			start = min(chunkSize-overlap, len(sentences))
-			for start+overlap < len(sentences) {
-				end = min(start+chunkSize, len(sentences))
-				c = strings.Join(sentences[start:end], " ")
-				chunks = append(chunks, c)
-				start = end - overlap
-			}
+			chunks := utils.SemanticChunk(text, maxChunkSize, overlap)
 
 			for i, chunk := range chunks {
 				fmt.Printf("%d. %s\n", i+1, chunk)
@@ -59,7 +39,7 @@ to quickly create a Cobra application.`,
 		},
 	}
 
-	cmd.Flags().IntVar(&chunkSize, "maxChunkSize", 4, "Specify the chunk size in sentences")
+	cmd.Flags().IntVar(&maxChunkSize, "maxChunkSize", 4, "Specify the chunk size in sentences")
 	cmd.Flags().IntVar(&overlap, "overlap", 0, "Specify number of sentences to overlap between chunks")
 
 	return cmd

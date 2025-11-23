@@ -22,6 +22,9 @@ var (
 	CacheDir       = filepath.Join(ProjectRoot, "cache")
 	IndexPath      = filepath.Join(CacheDir, "index.gob")
 	EmbeddingsPath = filepath.Join(CacheDir, "movie_embeddings.gob")
+
+	ChunksEmbeddingsPath = filepath.Join(CacheDir, "chunks_embeddings.gob")
+	ChunksMetadataPath   = filepath.Join(CacheDir, "chunks_metadata.json")
 )
 
 // getProjectRoot walks up until it finds go.mod (project base)
