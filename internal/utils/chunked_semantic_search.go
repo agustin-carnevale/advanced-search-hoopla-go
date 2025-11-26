@@ -5,10 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/model"
 )
+
+type ChunkSimilarityScore struct {
+	MovieIdx int
+	ChunkIdx int
+	Score    float64
+}
 
 type ChunkMetadataFile struct {
 	Chunks      []ChunkMetadata `json:"chunks"`
@@ -163,4 +170,61 @@ func (css *ChunkedSemanticSearch) LoadOrCreateChunksEmbeddings(docs []model.Movi
 
 	// Create from scratch
 	return css.BuildChunksEmbeddings()
+}
+
+func (css *ChunkedSemanticSearch) SearchChunked(query string, limit int) ([]SemanticSearchResult, error) {
+	// todo: check chunks_embeddings are valid/correctly loaded
+
+	queryEmbedding, err := css.EmbedText(query)
+	if err != nil {
+		return nil, fmt.Errorf("❌ Failed to create embedding of the query: %v\n", err)
+	}
+
+	scores := make([]ChunkSimilarityScore, 0, len(css.ChunksEmbeddings))
+	for i, chunkEmbedding := range css.ChunksEmbeddings {
+		similarityScore := CosineSimilarity(queryEmbedding, chunkEmbedding)
+		chunkMetadata := css.ChunksMetadata[i]
+		scores = append(scores, ChunkSimilarityScore{
+			MovieIdx: chunkMetadata.MovieIdx,
+			ChunkIdx: chunkMetadata.ChunkIdx,
+			Score:    similarityScore,
+		})
+	}
+
+	moviesScoreMap := make(map[int]float64)
+	for _, scoreItem := range scores {
+		movieIdx := scoreItem.MovieIdx
+		chunkScore := scoreItem.Score
+		_, ok := moviesScoreMap[movieIdx]
+		if ok {
+			if chunkScore > moviesScoreMap[movieIdx] {
+				moviesScoreMap[movieIdx] = chunkScore
+			}
+		} else {
+			moviesScoreMap[movieIdx] = chunkScore
+		}
+	}
+
+	movieScores := make([]SimilarityScore, 0, len(moviesScoreMap))
+	for movieIdx, movieScore := range moviesScoreMap {
+		movieScores = append(movieScores, SimilarityScore{
+			Score: movieScore,
+			Movie: css.Documents[movieIdx],
+		})
+	}
+
+	sort.Slice(movieScores, func(i, j int) bool {
+		return movieScores[i].Score > movieScores[j].Score
+	})
+
+	results := make([]SemanticSearchResult, 0, limit)
+	for _, item := range movieScores[:limit] {
+		results = append(results, SemanticSearchResult{
+			Score:       item.Score,
+			Title:       item.Movie.Title,
+			Description: item.Movie.Description,
+		})
+	}
+
+	return results, nil
 }
