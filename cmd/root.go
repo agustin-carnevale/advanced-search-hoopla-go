@@ -24,6 +24,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/hybrid"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/keyword"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/semantic"
 	"github.com/spf13/cobra"
@@ -54,7 +55,8 @@ func Execute() {
 func init() {
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	// Add keyword and semantic subcommands
+	// Add keyword, semantic and hybrid subcommands
 	rootCmd.AddCommand(keyword.KeywordCmd)
 	rootCmd.AddCommand(semantic.SemanticCmd)
+	rootCmd.AddCommand(hybrid.HybridCmd)
 }
