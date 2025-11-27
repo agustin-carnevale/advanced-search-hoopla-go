@@ -305,9 +305,22 @@ func CosineSimilarity(vec1, vec2 []float64) float64 {
 }
 
 func SemanticChunk(text string, maxChunkSize int, overlap int) []string {
+	// remove leading and trailing whitespace
+	text = strings.TrimSpace(text)
+
 	// TODO: this is removing the punctuation (add it back?)
 	sentenceRegex := regexp.MustCompile(`([.!?])\s+`)
-	sentences := sentenceRegex.Split(text, -1)
+	rawSentences := sentenceRegex.Split(text, -1)
+
+	sentences := make([]string, 0)
+	for _, s := range rawSentences {
+		// remove leading and trailing whitespace
+		sentence := strings.TrimSpace(s)
+		if len(sentence) > 0 {
+			sentences = append(sentences, sentence)
+		}
+	}
+
 	if len(sentences) == 0 {
 		return []string{}
 	}
