@@ -2,6 +2,7 @@ package utils
 
 import (
 	"log"
+	"slices"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/index"
@@ -57,4 +58,28 @@ func (hs *HybridSearch) WeightedSearch(query string, alpha int, limit int) {
 
 func (hs *HybridSearch) RRFSearch(query string, k float64, limit int) {
 	log.Fatalf("❌ RRF hybrid search is not implemented yet.")
+}
+
+func Normalize(inputs []float64) []float64 {
+	if len(inputs) == 0 {
+		return []float64{}
+	}
+
+	minVal := slices.Min(inputs)
+	maxVal := slices.Max(inputs)
+	maxMinDiff := maxVal - minVal
+
+	results := make([]float64, len(inputs))
+	if maxMinDiff == 0 {
+		for i := range results {
+			results[i] = 1.0
+		}
+	} else {
+		for i, v := range inputs {
+			score := (v - minVal) / maxMinDiff
+			results[i] = score
+		}
+	}
+
+	return results
 }
