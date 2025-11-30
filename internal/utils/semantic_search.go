@@ -26,6 +26,7 @@ type SimilarityScore struct {
 }
 
 type SemanticSearchResult struct {
+	DocID       int
 	Score       float64
 	Title       string
 	Description string
@@ -276,6 +277,7 @@ func (ss *SemanticSearch) Search(query string, limit int) ([]SemanticSearchResul
 	results := make([]SemanticSearchResult, 0, limit)
 	for _, item := range similarities[:limit] {
 		results = append(results, SemanticSearchResult{
+			DocID:       item.Movie.ID,
 			Score:       item.Score,
 			Title:       item.Movie.Title,
 			Description: item.Movie.Description,

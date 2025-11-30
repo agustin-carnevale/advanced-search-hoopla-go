@@ -1,12 +1,33 @@
 package utils
 
 import (
+	"fmt"
 	"log"
 	"slices"
+	"sort"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/index"
 )
+
+type ScoredDoc struct {
+	DocID  int
+	Scores *CombinedScores
+}
+type CombinedScores struct {
+	HybridScore   float64
+	KeywordScore  float64
+	SemanticScore float64
+}
+
+type WeightedSearchResult struct {
+	DocID         int
+	Title         string
+	Description   string
+	HybridScore   float64
+	KeywordScore  float64
+	SemanticScore float64
+}
 
 type HybridSearch struct {
 	Idx *index.InvertedIndex
@@ -52,8 +73,89 @@ func (hs *HybridSearch) bm25Search(query string, limit int) ([]index.SearchResul
 	return results, nil
 }
 
-func (hs *HybridSearch) WeightedSearch(query string, alpha int, limit int) {
-	log.Fatalf("❌ Weighted hybrid search is not implemented yet.")
+func (hs *HybridSearch) WeightedSearch(query string, alpha float64, limit int) ([]WeightedSearchResult, error) {
+	searchLimit := min(limit*500, len(hs.Css.Documents))
+
+	// keyword search
+	keywordResults, err := hs.bm25Search(query, searchLimit)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform bm25Search: %v\n", err)
+	}
+
+	scores := make([]float64, len(keywordResults))
+	for i, v := range keywordResults {
+		scores[i] = v.Score
+	}
+	normalizedKeywordScores := Normalize(scores)
+
+	// semantic search
+	semanticResults, err := hs.Css.SearchChunked(query, searchLimit)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform SearchChunked: %v\n", err)
+	}
+
+	scores = make([]float64, len(semanticResults))
+	for i, v := range semanticResults {
+		scores[i] = v.Score
+	}
+	normalizedSemanticScores := Normalize(scores)
+
+	// Collect all normalized scores by DocID
+	combinedScores := make(map[int]*CombinedScores, len(keywordResults)+len(semanticResults))
+
+	// Fill keyword scores
+	for i, r := range keywordResults {
+		combinedScores[r.DocID] = &CombinedScores{
+			KeywordScore: normalizedKeywordScores[i],
+		}
+	}
+
+	// Fill semantic scores
+	for i, r := range semanticResults {
+		cs, ok := combinedScores[r.DocID]
+		if !ok {
+			cs = &CombinedScores{}
+			combinedScores[r.DocID] = cs
+		}
+		cs.SemanticScore = normalizedSemanticScores[i]
+	}
+
+	// Compute hybrid scores
+	for _, cs := range combinedScores {
+		cs.HybridScore = HybridScore(cs.KeywordScore, cs.SemanticScore, alpha)
+	}
+
+	// map -> slice for sorting
+	scoredDocs := make([]ScoredDoc, 0, len(combinedScores))
+	for docID, scores := range combinedScores {
+		scoredDocs = append(scoredDocs, ScoredDoc{DocID: docID, Scores: scores})
+	}
+
+	// sort by HybridScore (desc)
+	sort.Slice(scoredDocs, func(i, j int) bool {
+		return scoredDocs[i].Scores.HybridScore > scoredDocs[j].Scores.HybridScore
+	})
+
+	if limit < len(scoredDocs) {
+		scoredDocs = scoredDocs[:limit]
+	}
+
+	results := make([]WeightedSearchResult, len(scoredDocs))
+
+	for i, d := range scoredDocs {
+		doc := hs.Css.Documents[d.DocID]
+		results[i] = WeightedSearchResult{
+			DocID:         d.DocID,
+			Title:         doc.Title,
+			Description:   doc.Description,
+			HybridScore:   d.Scores.HybridScore,
+			KeywordScore:  d.Scores.KeywordScore,
+			SemanticScore: d.Scores.SemanticScore,
+		}
+	}
+
+	return results, nil
+
 }
 
 func (hs *HybridSearch) RRFSearch(query string, k float64, limit int) {
@@ -83,3 +185,20 @@ func Normalize(inputs []float64) []float64 {
 
 	return results
 }
+
+// alpha (or "α") is just a constant that we can use to dynamically control
+// the weighting between the two scores
+
+// Query Type	  	Example	          Chosen Alpha	  Reason
+// Exact match	  "The Revenant"	  0.8	            Title search needs keywords
+// Conceptual	  	"family movies"	  0.2	            Meaning matters more
+// Mixed	        "2015 comedies"	  0.5	            Both year AND concept
+
+func HybridScore(bm25Score float64, semanticScore float64, alpha float64) float64 {
+	return alpha*bm25Score + (1-alpha)*semanticScore
+}
+
+// This is why it's so important to tune your search system's constants based on
+// the types of data and queries you're working with in your application! It's not
+// a one-size-fits-all solution, but building configurability into your system
+// allows you to adjust it as needed.

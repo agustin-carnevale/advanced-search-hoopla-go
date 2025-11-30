@@ -220,6 +220,7 @@ func (css *ChunkedSemanticSearch) SearchChunked(query string, limit int) ([]Sema
 	results := make([]SemanticSearchResult, 0, limit)
 	for _, item := range movieScores[:limit] {
 		results = append(results, SemanticSearchResult{
+			DocID:       item.Movie.ID,
 			Score:       item.Score,
 			Title:       item.Movie.Title,
 			Description: item.Movie.Description,
