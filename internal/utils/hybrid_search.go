@@ -28,6 +28,24 @@ type WeightedSearchResult struct {
 	KeywordScore  float64
 	SemanticScore float64
 }
+type RankedDoc struct {
+	DocID int
+	Ranks *CombinedRanks
+}
+type CombinedRanks struct {
+	RRFScore     float64
+	KeywordRank  int
+	SemanticRank int
+}
+
+type RRFSearchResult struct {
+	DocID        int
+	Title        string
+	Description  string
+	RRFScore     float64
+	KeywordRank  int
+	SemanticRank int
+}
 
 type HybridSearch struct {
 	Idx *index.InvertedIndex
@@ -158,8 +176,78 @@ func (hs *HybridSearch) WeightedSearch(query string, alpha float64, limit int) (
 
 }
 
-func (hs *HybridSearch) RRFSearch(query string, k float64, limit int) {
-	log.Fatalf("❌ RRF hybrid search is not implemented yet.")
+func (hs *HybridSearch) RRFSearch(query string, k int, limit int) ([]RRFSearchResult, error) {
+	searchLimit := min(limit*500, len(hs.Css.Documents))
+
+	// keyword search
+	keywordResults, err := hs.bm25Search(query, searchLimit)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform bm25Search: %v\n", err)
+	}
+	// semantic search
+	semanticResults, err := hs.Css.SearchChunked(query, searchLimit)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to perform SearchChunked: %v\n", err)
+	}
+
+	// combine results from both keyword and semantic
+	// map of docId -> rank info + score
+	combined := make(map[int]*CombinedRanks)
+
+	// Fill keyword ranks (+score)
+	for rank, result := range keywordResults {
+		combined[result.DocID] = &CombinedRanks{
+			KeywordRank:  rank,
+			SemanticRank: -1,
+			RRFScore:     CalcRRFScore(rank, k),
+		}
+	}
+
+	// Fill semantic ranks (+score)
+	for rank, result := range semanticResults {
+		cr, ok := combined[result.DocID]
+		if !ok {
+			combined[result.DocID] = &CombinedRanks{
+				KeywordRank:  -1,
+				SemanticRank: rank,
+				RRFScore:     CalcRRFScore(rank, k),
+			}
+		} else {
+			cr.SemanticRank = rank
+			cr.RRFScore = cr.RRFScore + CalcRRFScore(rank, k)
+		}
+	}
+
+	// map -> slice for sorting
+	rankedDocs := make([]RankedDoc, 0, len(combined))
+	for docID, ranksInfo := range combined {
+		rankedDocs = append(rankedDocs, RankedDoc{DocID: docID, Ranks: ranksInfo})
+	}
+
+	// sort by RRFScore (desc)
+	sort.Slice(rankedDocs, func(i, j int) bool {
+		return rankedDocs[i].Ranks.RRFScore > rankedDocs[j].Ranks.RRFScore
+	})
+
+	if limit < len(rankedDocs) {
+		rankedDocs = rankedDocs[:limit]
+	}
+
+	results := make([]RRFSearchResult, len(rankedDocs))
+
+	for i, d := range rankedDocs {
+		doc := hs.Css.Documents[d.DocID]
+		results[i] = RRFSearchResult{
+			DocID:        d.DocID,
+			Title:        doc.Title,
+			Description:  doc.Description,
+			RRFScore:     d.Ranks.RRFScore,
+			KeywordRank:  d.Ranks.KeywordRank,
+			SemanticRank: d.Ranks.SemanticRank,
+		}
+	}
+
+	return results, nil
 }
 
 func Normalize(inputs []float64) []float64 {
@@ -202,3 +290,7 @@ func HybridScore(bm25Score float64, semanticScore float64, alpha float64) float6
 // the types of data and queries you're working with in your application! It's not
 // a one-size-fits-all solution, but building configurability into your system
 // allows you to adjust it as needed.
+
+func CalcRRFScore(rank int, k int) float64 {
+	return 1 / float64(k+rank)
+}
