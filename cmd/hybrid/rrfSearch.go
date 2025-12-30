@@ -5,9 +5,11 @@ Copyright © 2025 NAME HERE <EMAIL ADDRESS>
 package hybrid
 
 import (
+	"context"
 	"fmt"
 	"log"
 
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/llms"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -15,6 +17,7 @@ import (
 func newRRFSearchCmd() *cobra.Command {
 	var limit int
 	var k int
+	var enhance string
 
 	cmd := &cobra.Command{
 		Use:   "rrfSearch <query> [--limit <int>] [--k <int>]",
@@ -37,6 +40,16 @@ to quickly create a Cobra application.`,
 				log.Fatalf("❌ Failed to create hybrid search client: %v\n", err)
 			}
 
+			if enhance == "spell" {
+				ctx := context.Background()
+				enhancedQuery, err := llms.QueryEnhanceSpell(ctx, query)
+				if err != nil {
+					log.Fatalf("error: %v", err)
+				}
+				fmt.Printf("Enhanced query (%s): '%s' -> '%s'\n", enhance, query, enhancedQuery)
+				query = enhancedQuery
+			}
+
 			results, err := hs.RRFSearch(query, k, limit)
 			if err != nil {
 				log.Fatalf("❌ Failed to perform weighted search: %v\n", err)
@@ -52,6 +65,7 @@ to quickly create a Cobra application.`,
 	}
 	cmd.Flags().IntVar(&limit, "limit", 5, "Limit the amount of results")
 	cmd.Flags().IntVar(&k, "k", 60, "Controls how much more weight we give to higher-ranked results vs lower-ranked ones.")
+	cmd.Flags().StringVar(&enhance, "enhance", "", "Query enhancement method. [choices: spell]")
 
 	return cmd
 

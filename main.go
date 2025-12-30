@@ -21,8 +21,18 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/agustin-carnevale/advanced-search-hoopla-go/cmd"
+import (
+	"log"
+
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd"
+	"github.com/joho/godotenv"
+)
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("No .env file found (using real env)")
+	}
+
 	cmd.Execute()
 }
