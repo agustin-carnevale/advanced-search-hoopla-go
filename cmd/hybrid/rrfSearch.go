@@ -40,9 +40,9 @@ to quickly create a Cobra application.`,
 				log.Fatalf("❌ Failed to create hybrid search client: %v\n", err)
 			}
 
-			if enhance == "spell" {
+			if enhance != "" {
 				ctx := context.Background()
-				enhancedQuery, err := llms.QueryEnhanceSpell(ctx, query)
+				enhancedQuery, err := llms.PreProcessQuery(ctx, query, enhance)
 				if err != nil {
 					log.Fatalf("error: %v", err)
 				}

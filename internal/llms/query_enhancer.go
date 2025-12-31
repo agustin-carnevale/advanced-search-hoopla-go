@@ -3,24 +3,9 @@ package llms
 import (
 	"context"
 	"fmt"
-	"os"
-
-	"google.golang.org/genai"
 )
 
 func QueryEnhanceSpell(ctx context.Context, query string) (string, error) {
-	apiKey := os.Getenv("GEMINI_API_KEY")
-	if apiKey == "" {
-		return "", fmt.Errorf("GEMINI_API_KEY not set")
-	}
-	client, err := genai.NewClient(ctx, &genai.ClientConfig{
-		APIKey:  apiKey,
-		Backend: genai.BackendGeminiAPI,
-	})
-
-	if err != nil {
-		return "", fmt.Errorf("failed to create client: %w", err)
-	}
 
 	// Build the text prompt
 	prompt := fmt.Sprintf(`Fix any spelling errors in this movie search query.
@@ -33,21 +18,74 @@ func QueryEnhanceSpell(ctx context.Context, query string) (string, error) {
 		query,
 	)
 
-	// Wrap into a *genai.Content slice
-	contents := []*genai.Content{
-		{Parts: []*genai.Part{{Text: prompt}}},
-	}
+	// Call llm
+	return GeminiGenerateContent(ctx, prompt)
+}
 
-	// Call GenerateContent
-	response, err := client.Models.GenerateContent(ctx, "gemini-3-flash-preview", contents, nil)
-	if err != nil {
-		return "", fmt.Errorf("generate content error: %w", err)
-	}
+func QueryEnhanceRewrite(ctx context.Context, query string) (string, error) {
 
-	// Extract text
-	if len(response.Candidates) > 0 {
-		return response.Candidates[0].Content.Parts[0].Text, nil
-	}
+	// Build the text prompt
+	prompt := fmt.Sprintf(`Rewrite this movie search query to be more specific and searchable.
+	
+		Original: "%s"
 
-	return "", nil
+    Consider:
+    - Common movie knowledge (famous actors, popular films)
+    - Genre conventions (horror = scary, animation = cartoon)
+    - Keep it concise (under 10 words)
+    - It should be a google style search query that's very specific
+    - Don't use boolean logic
+
+    Examples:
+
+    - "that bear movie where leo gets attacked" -> "The Revenant Leonardo DiCaprio bear attack"
+    - "movie about bear in london with marmalade" -> "Paddington London marmalade"
+    - "scary movie with bear from few years ago" -> "bear horror movie 2015-2020"
+    
+    If you don't see any possible improvement, return the original query.
+    If the query was optimized, just return the new query (ready to use, without additional text).`,
+		query,
+	)
+
+	// Call llm
+	return GeminiGenerateContent(ctx, prompt)
+}
+func QueryEnhanceExpand(ctx context.Context, query string) (string, error) {
+
+	// Build the text prompt
+	prompt := fmt.Sprintf(`Expand this movie search query with related terms.
+		
+		Add synonyms and related concepts that might appear in movie descriptions.
+    Keep expansions relevant and focused.
+    This will be appended to the original query.
+
+    Examples:
+
+    - "scary bear movie" -> "scary horror grizzly bear movie terrifying film"
+    - "action movie with bear" -> "action thriller bear chase fight adventure"
+    - "comedy with bear" -> "comedy funny bear humor lighthearted"
+    
+
+		Query: "%s"
+
+ 		If you don't see any possible improvement, return the original query.
+    If the query was optimized, just return the new query (ready to use, without additional text).`,
+		query,
+	)
+
+	// Call llm
+	return GeminiGenerateContent(ctx, prompt)
+}
+
+func PreProcessQuery(ctx context.Context, query string, enhance string) (string, error) {
+	switch enhance {
+	case "spell":
+		return QueryEnhanceSpell(ctx, query)
+	case "rewrite":
+		return QueryEnhanceRewrite(ctx, query)
+	case "expand":
+		return QueryEnhanceExpand(ctx, query)
+	default:
+		return query, nil
+	}
 }
