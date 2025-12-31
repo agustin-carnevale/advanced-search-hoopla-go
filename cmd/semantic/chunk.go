@@ -15,14 +15,8 @@ func newChunkCmd() *cobra.Command {
 	var overlap int
 
 	cmd := &cobra.Command{
-		Use:   "chunk <text> [--chunkSize <value>] [--overlap <value>]",
-		Short: "A brief description of your command",
-		Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		Use:   "chunk <text> [--chunkSize <int>] [--overlap <int>]",
+		Short: "Split long text into smaller pieces for embedding",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
 				fmt.Println("❌ You need to provide a text to chunk")
@@ -56,8 +50,8 @@ to quickly create a Cobra application.`,
 		},
 	}
 
-	cmd.Flags().IntVar(&chunkSize, "chunkSize", 200, "Specify the chunk size in words")
-	cmd.Flags().IntVar(&overlap, "overlap", 0, "Specify number of words to overlap between chunks")
+	cmd.Flags().IntVar(&chunkSize, "chunkSize", 200, "Specify the chunk size in words [default: 200]")
+	cmd.Flags().IntVar(&overlap, "overlap", 0, "Specify number of words to overlap between chunks [default: 0]")
 
 	return cmd
 }

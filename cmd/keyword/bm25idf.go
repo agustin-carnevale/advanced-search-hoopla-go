@@ -14,13 +14,7 @@ import (
 // bm25idfCmd represents the bm25idf command
 var bm25idfCmd = &cobra.Command{
 	Use:   "bm25idf <term>",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Get BM25 IDF score for a given term",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println("❌ Please provide a term.")

@@ -19,12 +19,6 @@ func newWeightedSearchCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "weightedSearch <query> [--limit <int>] [--alpha <float>]",
 		Short: "Weighted search combining both keyword and semantic",
-		Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
 				fmt.Println("❌ Please provide a query to embed.")

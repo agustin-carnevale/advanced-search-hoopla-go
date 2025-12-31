@@ -15,14 +15,8 @@ func newSemanticChunkCmd() *cobra.Command {
 	var overlap int
 
 	cmd := &cobra.Command{
-		Use:   "semanticChunk <text> [--maxChunkSize <value>] [--overlap <value>]",
-		Short: "A brief description of your command",
-		Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		Use:   "semanticChunk <text> [--maxChunkSize <int>] [--overlap <int>]",
+		Short: "Split long texts into smaller pieces semantically for embeddings",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
 				fmt.Println("❌ You need to provide a text to chunk")
@@ -39,8 +33,8 @@ to quickly create a Cobra application.`,
 		},
 	}
 
-	cmd.Flags().IntVar(&maxChunkSize, "maxChunkSize", 4, "Specify the chunk size in sentences")
-	cmd.Flags().IntVar(&overlap, "overlap", 0, "Specify number of sentences to overlap between chunks")
+	cmd.Flags().IntVar(&maxChunkSize, "maxChunkSize", 4, "Specify the chunk size in sentences [default: 4]")
+	cmd.Flags().IntVar(&overlap, "overlap", 0, "Specify number of sentences to overlap between chunks [default: 0]")
 
 	return cmd
 }

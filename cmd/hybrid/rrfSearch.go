@@ -20,14 +20,23 @@ func newRRFSearchCmd() *cobra.Command {
 	var enhance string
 
 	cmd := &cobra.Command{
-		Use:   "rrfSearch <query> [--limit <int>] [--k <int>]",
-		Short: "RRF search combining both keyword and semantic",
-		Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+		Use:   "rrfSearch <query> [--limit <int>] [--k <int>] [--enhance <spell|rewrite|expand>]",
+		Short: "Reciprocal Rank Fusion search combining both keyword and semantic.",
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if enhance == "" {
+				return nil
+			}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+			switch enhance {
+			case "spell", "rewrite", "expand":
+				return nil
+			default:
+				return fmt.Errorf(
+					"invalid value for --enhance: %q (allowed: spell, rewrite, expand)",
+					enhance,
+				)
+			}
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
 				fmt.Println("❌ Please provide a query to embed.")
@@ -65,7 +74,7 @@ to quickly create a Cobra application.`,
 	}
 	cmd.Flags().IntVar(&limit, "limit", 5, "Limit the amount of results")
 	cmd.Flags().IntVar(&k, "k", 60, "Controls how much more weight we give to higher-ranked results vs lower-ranked ones.")
-	cmd.Flags().StringVar(&enhance, "enhance", "", "Query enhancement method. [choices: spell]")
+	cmd.Flags().StringVar(&enhance, "enhance", "", "Query enhancement method. [choices: spell|rewrite|expand]")
 
 	return cmd
 
@@ -73,5 +82,12 @@ to quickly create a Cobra application.`,
 
 func init() {
 	rrfSearchCmd := newRRFSearchCmd()
+	rrfSearchCmd.RegisterFlagCompletionFunc(
+		"enhance",
+		cobra.FixedCompletions(
+			[]string{"spell", "rewrite", "expand"},
+			cobra.ShellCompDirectiveNoFileComp,
+		),
+	)
 	HybridCmd.AddCommand(rrfSearchCmd)
 }

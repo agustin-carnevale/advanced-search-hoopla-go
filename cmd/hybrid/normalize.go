@@ -13,14 +13,9 @@ import (
 
 // normalizeCmd represents the normalize command
 var normalizeCmd = &cobra.Command{
-	Use:   "normalize",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:     "normalize <inputs...>",
+	Short:   "Normalizes scores using the min-max normalization",
+	Example: "normalize 1.2 3.2 6.4 3.0 0.3 2.0",
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			return

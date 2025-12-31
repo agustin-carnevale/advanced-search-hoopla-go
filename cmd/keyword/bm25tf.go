@@ -18,14 +18,8 @@ func NewBm25TFCmd() *cobra.Command {
 	var b float64
 
 	cmd := &cobra.Command{
-		Use:   "bm25tf <docID> <term> [--k1 <value>] [--b <value>]",
-		Short: "A brief description of your command",
-		Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+		Use:   "bm25tf <docID> <term> [--k1 <float>] [--b <float>]",
+		Short: "Get BM25 TF score for a given document ID and term",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 2 {
 				fmt.Println("❌ Please provide a docID and a term.")
@@ -52,8 +46,8 @@ to quickly create a Cobra application.`,
 		},
 	}
 
-	cmd.Flags().Float64Var(&k1, "k1", 1.5, "Define a k1 parameter")
-	cmd.Flags().Float64Var(&b, "b", 0.75, "Define a b parameter")
+	cmd.Flags().Float64Var(&k1, "k1", 1.5, "Define a k1 parameter [default: 1.5]")
+	cmd.Flags().Float64Var(&b, "b", 0.75, "Define a b parameter [default: 0.75]")
 
 	return cmd
 
