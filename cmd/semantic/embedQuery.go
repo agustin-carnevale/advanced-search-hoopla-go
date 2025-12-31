@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ var embedQueryCmd = &cobra.Command{
 		}
 		query := args[0]
 
-		ss, err := utils.NewSemanticSearch("nomic-embed-text")
+		ss, err := methods.NewSemanticSearch("nomic-embed-text")
 		if err != nil {
 			log.Fatalf("❌ Failed to create semantic search client: %v\n", err)
 		}

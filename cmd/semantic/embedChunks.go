@@ -8,7 +8,8 @@ import (
 	"log"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
-	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
+
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +17,7 @@ var embedChunksCmd = &cobra.Command{
 	Use:   "embedChunks",
 	Short: "Verifies chunked embeddings exist if not creates them",
 	Run: func(cmd *cobra.Command, args []string) {
-		css, err := utils.NewChunkedSemanticSearch("nomic-embed-text")
+		css, err := methods.NewChunkedSemanticSearch("nomic-embed-text")
 		if err != nil {
 			log.Fatalf("❌ Failed to create chunked semantic search client: %v\n", err)
 		}

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
 	"github.com/spf13/cobra"
 )
 
@@ -31,7 +31,7 @@ var normalizeCmd = &cobra.Command{
 			inputs = append(inputs, val)
 		}
 
-		results := utils.Normalize(inputs)
+		results := methods.Normalize(inputs)
 
 		for _, score := range results {
 			fmt.Printf("* %.4f\n", score)

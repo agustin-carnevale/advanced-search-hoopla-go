@@ -8,7 +8,7 @@ import (
 	"log"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
-	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ func newSearchChunkedCmd() *cobra.Command {
 			}
 			query := args[0]
 
-			css, err := utils.NewChunkedSemanticSearch("nomic-embed-text")
+			css, err := methods.NewChunkedSemanticSearch("nomic-embed-text")
 			if err != nil {
 				log.Fatalf("❌ Failed to create semantic search client: %v\n", err)
 			}

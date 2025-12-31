@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
 	"github.com/spf13/cobra"
 )
 
@@ -26,7 +26,7 @@ func newWeightedSearchCmd() *cobra.Command {
 			}
 			query := args[0]
 
-			hs, err := utils.NewHybridSearch("nomic-embed-text")
+			hs, err := methods.NewHybridSearch("nomic-embed-text")
 			if err != nil {
 				log.Fatalf("❌ Failed to create hybrid search client: %v\n", err)
 			}

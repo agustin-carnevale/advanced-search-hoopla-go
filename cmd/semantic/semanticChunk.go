@@ -6,7 +6,7 @@ package semantic
 import (
 	"fmt"
 
-	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/utils"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ func newSemanticChunkCmd() *cobra.Command {
 			text := args[0]
 			fmt.Printf("Chunking %d characters\n", len(text))
 
-			chunks := utils.SemanticChunk(text, maxChunkSize, overlap)
+			chunks := methods.SemanticChunk(text, maxChunkSize, overlap)
 
 			for i, chunk := range chunks {
 				fmt.Printf("%d. %s\n", i+1, chunk)
