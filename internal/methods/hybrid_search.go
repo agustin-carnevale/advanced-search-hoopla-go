@@ -1,6 +1,7 @@
 package methods
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"slices"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/index"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/llms"
 )
 
 type ScoredDoc struct {
@@ -45,6 +47,11 @@ type RRFSearchResult struct {
 	RRFScore     float64
 	KeywordRank  int
 	SemanticRank int
+}
+
+type RRFSearchReRankedResult struct {
+	RRFSearchResult
+	ReRankScore float64
 }
 
 type HybridSearch struct {
@@ -161,7 +168,7 @@ func (hs *HybridSearch) WeightedSearch(query string, alpha float64, limit int) (
 	results := make([]WeightedSearchResult, len(scoredDocs))
 
 	for i, d := range scoredDocs {
-		doc := hs.Css.Documents[d.DocID]
+		doc := hs.Css.DocumentMap[d.DocID]
 		results[i] = WeightedSearchResult{
 			DocID:         d.DocID,
 			Title:         doc.Title,
@@ -236,7 +243,7 @@ func (hs *HybridSearch) RRFSearch(query string, k int, limit int) ([]RRFSearchRe
 	results := make([]RRFSearchResult, len(rankedDocs))
 
 	for i, d := range rankedDocs {
-		doc := hs.Css.Documents[d.DocID]
+		doc := hs.Css.DocumentMap[d.DocID]
 		results[i] = RRFSearchResult{
 			DocID:        d.DocID,
 			Title:        doc.Title,
@@ -293,4 +300,26 @@ func HybridScore(bm25Score float64, semanticScore float64, alpha float64) float6
 
 func CalcRRFScore(rank int, k int) float64 {
 	return 1 / float64(k+rank)
+}
+
+func ReRankResults(query string, results []RRFSearchResult) ([]RRFSearchReRankedResult, error) {
+	ctx := context.Background()
+
+	rerankedResults := make([]RRFSearchReRankedResult, len(results))
+	for i, doc := range results {
+		score, err := llms.ReRankDoc(ctx, query, doc.Title, doc.Description)
+		if err != nil {
+			return nil, err
+		}
+		rerankedResults[i] = RRFSearchReRankedResult{
+			RRFSearchResult: doc,
+			ReRankScore:     score,
+		}
+	}
+
+	sort.Slice(rerankedResults, func(i, j int) bool {
+		return rerankedResults[i].ReRankScore > rerankedResults[j].ReRankScore
+	})
+
+	return rerankedResults, nil
 }
