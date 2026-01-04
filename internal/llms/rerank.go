@@ -2,6 +2,7 @@ package llms
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 )
@@ -63,4 +64,41 @@ Return ONLY a single integer from 0-10, nothing else. No explanation, no text, j
 	// fmt.Printf("Float Score: %.3f\n\n", float64(score))
 
 	return float64(score), nil
+}
+
+func ReRankDocsBatch(ctx context.Context, query string, docsListStr string) ([]int, error) {
+
+	// Build the text prompt
+	prompt := fmt.Sprintf(`Rank these movies by relevance to the search query.
+
+      Query: "%s"
+      Movies: 
+      %s
+
+      Consider:
+      - Direct relevance to query
+      - User intent (what they're looking for)
+      - Content appropriateness
+
+    	Return ONLY the IDs in order of relevance (best match first). Return a valid JSON list, nothing else. For example:
+
+    	[75, 12, 34, 2, 1]
+		`,
+		query,
+		docsListStr,
+	)
+
+	// Call to llm
+	jsonData, err := GeminiGenerateContent(ctx, prompt)
+	if err != nil {
+		return nil, err
+	}
+
+	var rankedIdsList []int
+	err = json.Unmarshal([]byte(jsonData), &rankedIdsList)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse list of ids from response %q: %w", jsonData, err)
+	}
+
+	return rankedIdsList, nil
 }

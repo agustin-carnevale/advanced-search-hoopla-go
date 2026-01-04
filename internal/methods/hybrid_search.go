@@ -6,6 +6,7 @@ import (
 	"log"
 	"slices"
 	"sort"
+	"strings"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/fs"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/index"
@@ -302,24 +303,66 @@ func CalcRRFScore(rank int, k int) float64 {
 	return 1 / float64(k+rank)
 }
 
-func ReRankResults(query string, results []RRFSearchResult) ([]RRFSearchReRankedResult, error) {
+func ReRankResults(query string, results []RRFSearchResult, method string) ([]RRFSearchReRankedResult, error) {
 	ctx := context.Background()
 
 	rerankedResults := make([]RRFSearchReRankedResult, len(results))
-	for i, doc := range results {
-		score, err := llms.ReRankDoc(ctx, query, doc.Title, doc.Description)
+
+	if method == "individual" {
+		for i, doc := range results {
+			score, err := llms.ReRankDoc(ctx, query, doc.Title, doc.Description)
+			if err != nil {
+				return nil, err
+			}
+			rerankedResults[i] = RRFSearchReRankedResult{
+				RRFSearchResult: doc,
+				ReRankScore:     score,
+			}
+		}
+
+		sort.Slice(rerankedResults, func(i, j int) bool {
+			return rerankedResults[i].ReRankScore > rerankedResults[j].ReRankScore
+		})
+	}
+	if method == "batch" {
+		// build a map to access results later on
+		resultsByID := make(map[int]RRFSearchResult, len(results))
+		for _, r := range results {
+			resultsByID[r.DocID] = r
+		}
+
+		// create one string contaning all relevant docs data to pass to LLM
+		parts := make([]string, 0, len(results))
+		for _, doc := range results {
+			parts = append(
+				parts,
+				fmt.Sprintf(
+					"ID: %d\nTitle: %s\nDescription: %s",
+					doc.DocID,
+					doc.Title,
+					doc.Description,
+				),
+			)
+		}
+		docsListStr := strings.Join(parts, "\n\n")
+
+		rerankedIDs, err := llms.ReRankDocsBatch(ctx, query, docsListStr)
 		if err != nil {
 			return nil, err
 		}
-		rerankedResults[i] = RRFSearchReRankedResult{
-			RRFSearchResult: doc,
-			ReRankScore:     score,
+
+		if len(rerankedIDs) != len(results) {
+			return nil, fmt.Errorf("LLM re-ranked results are not consistent with original results")
+		}
+
+		for i, id := range rerankedIDs {
+			if r, ok := resultsByID[id]; ok {
+				rerankedResults[i] = RRFSearchReRankedResult{
+					RRFSearchResult: r,
+				}
+			}
 		}
 	}
-
-	sort.Slice(rerankedResults, func(i, j int) bool {
-		return rerankedResults[i].ReRankScore > rerankedResults[j].ReRankScore
-	})
 
 	return rerankedResults, nil
 }

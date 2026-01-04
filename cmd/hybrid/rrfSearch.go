@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/cli"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/llms"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
 	"github.com/spf13/cobra"
@@ -21,22 +22,22 @@ func newRRFSearchCmd() *cobra.Command {
 	var rerankMethod string
 
 	cmd := &cobra.Command{
-		Use:   "rrfSearch <query> [--limit <int>] [--k <int>] [--enhance <spell|rewrite|expand>] [--rerankMethod]",
+		Use:   "rrfSearch <query> [--limit <int>] [--k <int>] [--enhance <spell|rewrite|expand>] [--rerankMethod <individual|batch|crossEncoder>]",
 		Short: "Reciprocal Rank Fusion search combining both keyword and semantic.",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			if enhance == "" {
-				return nil
+			if err := cli.ValidateFlagEnum(enhance, "enhance", "spell", "rewrite", "expand"); err != nil {
+				return err
 			}
-
-			switch enhance {
-			case "spell", "rewrite", "expand":
-				return nil
-			default:
-				return fmt.Errorf(
-					"invalid value for --enhance: %q (allowed: spell, rewrite, expand)",
-					enhance,
-				)
+			if err := cli.ValidateFlagEnum(
+				rerankMethod,
+				"rerankMethod",
+				"individual",
+				"batch",
+				"crossEncoder",
+			); err != nil {
+				return err
 			}
+			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 
@@ -78,7 +79,7 @@ func newRRFSearchCmd() *cobra.Command {
 			if rerankMethod != "" {
 				// apply LLM reranking
 				fmt.Printf("Reranking top %d results using %s method...\n", len(results), rerankMethod)
-				finalResults, err = methods.ReRankResults(query, results)
+				finalResults, err = methods.ReRankResults(query, results, rerankMethod)
 				if err != nil {
 					log.Fatalf("❌ Failed to perform re-ranking: %v\n", err)
 				}
@@ -92,7 +93,7 @@ func newRRFSearchCmd() *cobra.Command {
 				}
 			}
 			// print top results
-			printRRFResults(finalResults, limit, rerankMethod != "", query, k)
+			printRRFResults(finalResults, limit, rerankMethod, query, k)
 		},
 	}
 	cmd.Flags().IntVar(&limit, "limit", 5, "Limit the amount of results")
@@ -118,7 +119,7 @@ func init() {
 func printRRFResults(
 	results []methods.RRFSearchReRankedResult,
 	limit int,
-	showReRank bool,
+	rerankMethod string,
 	query string,
 	k int,
 ) {
@@ -134,8 +135,11 @@ func printRRFResults(
 
 	for i, result := range results[:limit] {
 		fmt.Printf("%d. %s\n", i+1, result.Title)
-		if showReRank {
+		if rerankMethod == "individual" {
 			fmt.Printf("\tReRank Score: %.3f/10\n", result.ReRankScore)
+		}
+		if rerankMethod == "batch" {
+			fmt.Printf("\tReRank Rank: %d\n", i+1)
 		}
 		fmt.Printf("\tRRF Score: %.3f\n", result.RRFScore)
 		fmt.Printf("\tBM25 Rank: %d, Semantic Rank: %d\n", result.KeywordRank, result.SemanticRank)
