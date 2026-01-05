@@ -363,6 +363,39 @@ func ReRankResults(query string, results []RRFSearchResult, method string) ([]RR
 			}
 		}
 	}
+	// Cross-Encoder Reranking
+	// The Python implementation uses a local SentenceTransformers cross-encoder model.
+	// This Go implementation uses Cohere's Rerank API, which provides the same cross-encoder-style relevance scoring.
+	if method == "crossEncoder" {
+		docs := make([]string, len(results))
+		for i, doc := range results {
+			docs[i] = fmt.Sprintf(
+				"%s - %s",
+				doc.Title,
+				doc.Description,
+			)
+		}
+
+		// Call Cohere rerank API
+		scores, err := llms.CohereRerankCrossEncoder(ctx, query, docs)
+		if err != nil {
+			return nil, err
+		}
+
+		// Attach scores
+		for i, doc := range results {
+			rerankedResults[i] = RRFSearchReRankedResult{
+				RRFSearchResult: doc,
+				ReRankScore:     scores[i],
+			}
+		}
+
+		// Sort by score desc
+		sort.Slice(rerankedResults, func(i, j int) bool {
+			return rerankedResults[i].ReRankScore >
+				rerankedResults[j].ReRankScore
+		})
+	}
 
 	return rerankedResults, nil
 }

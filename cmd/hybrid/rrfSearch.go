@@ -99,7 +99,7 @@ func newRRFSearchCmd() *cobra.Command {
 	cmd.Flags().IntVar(&limit, "limit", 5, "Limit the amount of results")
 	cmd.Flags().IntVar(&k, "k", 60, "Controls how much more weight we give to higher-ranked results vs lower-ranked ones.")
 	cmd.Flags().StringVar(&enhance, "enhance", "", "Query enhancement method. [choices: spell|rewrite|expand]")
-	cmd.Flags().StringVar(&rerankMethod, "rerankMethod", "", "Re-ranking method. [choices: individual]")
+	cmd.Flags().StringVar(&rerankMethod, "rerankMethod", "", "Re-ranking method. [choices: individual|batch|crossEncoder]")
 
 	return cmd
 }
@@ -110,6 +110,13 @@ func init() {
 		"enhance",
 		cobra.FixedCompletions(
 			[]string{"spell", "rewrite", "expand"},
+			cobra.ShellCompDirectiveNoFileComp,
+		),
+	)
+	rrfSearchCmd.RegisterFlagCompletionFunc(
+		"rerankMethod",
+		cobra.FixedCompletions(
+			[]string{"individual", "batch", "crossEncoder"},
 			cobra.ShellCompDirectiveNoFileComp,
 		),
 	)
@@ -140,6 +147,9 @@ func printRRFResults(
 		}
 		if rerankMethod == "batch" {
 			fmt.Printf("\tReRank Rank: %d\n", i+1)
+		}
+		if rerankMethod == "crossEncoder" {
+			fmt.Printf("\tCross Encoder Score: %.3f\n", result.ReRankScore)
 		}
 		fmt.Printf("\tRRF Score: %.3f\n", result.RRFScore)
 		fmt.Printf("\tBM25 Rank: %d, Semantic Rank: %d\n", result.KeywordRank, result.SemanticRank)

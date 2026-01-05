@@ -1,11 +1,29 @@
 package llms
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"os"
 	"strconv"
 )
+
+type CohereRerankRequest struct {
+	Model     string   `json:"model"`
+	Query     string   `json:"query"`
+	Documents []string `json:"documents"`
+	TopN      int      `json:"top_n,omitempty"`
+}
+
+type CohereRerankResponse struct {
+	Results []struct {
+		Index          int     `json:"index"`
+		RelevanceScore float64 `json:"relevance_score"`
+	} `json:"results"`
+}
 
 func ReRankDoc(ctx context.Context, query string, title string, description string) (float64, error) {
 
@@ -101,4 +119,68 @@ func ReRankDocsBatch(ctx context.Context, query string, docsListStr string) ([]i
 	}
 
 	return rankedIdsList, nil
+}
+
+// Using Cohere as the most similar approach to directly using/implementing a CrossEncoder
+// Why this is a cross-encoder replacement:
+//   - Cohere rerank jointly encodes query + document
+//   - Uses a fine-tuned relevance model
+//   - Returns comparable scalar relevance scores
+//   - Deterministic & optimized for ranking
+//
+// Note: This is not prompt-based ranking.
+func CohereRerankCrossEncoder(
+	ctx context.Context,
+	query string,
+	docs []string,
+) ([]float64, error) {
+	apiKey := os.Getenv("COHERE_API_KEY")
+	if apiKey == "" {
+		return nil, fmt.Errorf("COHERE_API_KEY not set")
+	}
+
+	reqBody := CohereRerankRequest{
+		Model:     "rerank-english-v3.0",
+		Query:     query,
+		Documents: docs,
+	}
+
+	body, _ := json.Marshal(reqBody)
+
+	req, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		"https://api.cohere.ai/v1/rerank",
+		bytes.NewBuffer(body),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("cohere rerank failed: %s", string(b))
+	}
+
+	var out CohereRerankResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, err
+	}
+
+	// map scores back to original order
+	scores := make([]float64, len(docs))
+	for _, r := range out.Results {
+		scores[r.Index] = r.RelevanceScore
+	}
+
+	return scores, nil
 }
