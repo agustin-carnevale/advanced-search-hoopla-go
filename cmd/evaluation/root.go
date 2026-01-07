@@ -50,10 +50,14 @@ var EvaluationCmd = &cobra.Command{
 			}
 
 			precision := float64(relevantCount) / float64(len(retrievedTitles))
+			recall := float64(relevantCount) / float64(len(testCase.RelevantDocs))
+			f1 := 2 * (precision * recall) / (precision + recall)
 
 			fmt.Printf("Test Case %d\n", i+1)
 			fmt.Printf("- Query: %s\n", query)
 			fmt.Printf("\t- Precision@%d: %.4f\n", limit, precision)
+			fmt.Printf("\t- Recall@%d: %.4f\n", limit, recall)
+			fmt.Printf("\t- F1 Score: %.4f\n", f1)
 			fmt.Printf("\t- Retrieved: %s\n", strings.Join(retrievedTitles, ", "))
 			fmt.Printf("\t- Relevant: %s\n\n", strings.Join(testCase.RelevantDocs, ", "))
 		}
