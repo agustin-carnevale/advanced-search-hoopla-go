@@ -8,10 +8,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/cli"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/llms"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/logging"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/methods"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +23,7 @@ func newRRFSearchCmd() *cobra.Command {
 	var k int
 	var enhance string
 	var rerankMethod string
+	var debug bool
 
 	cmd := &cobra.Command{
 		Use:   "rrfSearch <query> [--limit <int>] [--k <int>] [--enhance <spell|rewrite|expand>] [--rerankMethod <individual|batch|crossEncoder>]",
@@ -47,6 +51,15 @@ func newRRFSearchCmd() *cobra.Command {
 			}
 			query := args[0]
 
+			// Initialize logger
+			logger := logging.New(debug)
+			execCtx := logging.ExecutionContext{
+				RunID:   uuid.New().String(),
+				QueryID: uuid.New().String(),
+			}
+
+			logging.LogOriginalQuery(logger, execCtx, query)
+
 			hs, err := methods.NewHybridSearch("nomic-embed-text")
 			if err != nil {
 				log.Fatalf("❌ Failed to create hybrid search client: %v\n", err)
@@ -60,6 +73,13 @@ func newRRFSearchCmd() *cobra.Command {
 					log.Fatalf("error: %v", err)
 				}
 				fmt.Printf("Enhanced query (%s): '%s' -> '%s'\n", enhance, query, enhancedQuery)
+
+				logging.LogEnhancedQuery(logger, execCtx, logging.EnhancedQueryLog{
+					EnhancementType: enhance,
+					OriginalQuery:   query,
+					EnhancedQuery:   enhancedQuery,
+				})
+
 				query = enhancedQuery
 			}
 
@@ -72,6 +92,20 @@ func newRRFSearchCmd() *cobra.Command {
 			results, err := hs.RRFSearch(query, k, searchLimit)
 			if err != nil {
 				log.Fatalf("❌ Failed to perform rrf search: %v\n", err)
+			}
+
+			// Log RRF candidates
+			if debug {
+				rrfLogs := make([]logging.RRFCandidateLog, len(results))
+				for i, r := range results {
+					rrfLogs[i] = logging.RRFCandidateLog{
+						DocID:        strconv.Itoa(r.DocID),
+						RRFScore:     r.RRFScore,
+						BM25Rank:     r.KeywordRank,
+						SemanticRank: r.SemanticRank,
+					}
+				}
+				logging.LogRRFResults(logger, execCtx, rrfLogs)
 			}
 
 			// normalize into a single result type
@@ -92,6 +126,20 @@ func newRRFSearchCmd() *cobra.Command {
 					}
 				}
 			}
+
+			// Log Final Results
+			if debug {
+				finalLogs := make([]logging.FinalResultLog, len(finalResults))
+				for i, r := range finalResults {
+					finalLogs[i] = logging.FinalResultLog{
+						DocID:      strconv.Itoa(r.DocID),
+						FinalScore: r.ReRankScore,
+						Position:   i + 1,
+					}
+				}
+				logging.LogFinalResults(logger, execCtx, finalLogs)
+			}
+
 			// print top results
 			printRRFResults(finalResults, limit, rerankMethod, query, k)
 		},
@@ -100,6 +148,7 @@ func newRRFSearchCmd() *cobra.Command {
 	cmd.Flags().IntVar(&k, "k", 60, "Controls how much more weight we give to higher-ranked results vs lower-ranked ones.")
 	cmd.Flags().StringVar(&enhance, "enhance", "", "Query enhancement method. [choices: spell|rewrite|expand]")
 	cmd.Flags().StringVar(&rerankMethod, "rerankMethod", "", "Re-ranking method. [choices: individual|batch|crossEncoder]")
+	cmd.Flags().BoolVar(&debug, "debug", false, "Enable debug logging")
 
 	return cmd
 }
