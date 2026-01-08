@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/cli"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/internal/llms"
@@ -24,6 +25,7 @@ func newRRFSearchCmd() *cobra.Command {
 	var enhance string
 	var rerankMethod string
 	var debug bool
+	var evaluate bool
 
 	cmd := &cobra.Command{
 		Use:   "rrfSearch <query> [--limit <int>] [--k <int>] [--enhance <spell|rewrite|expand>] [--rerankMethod <individual|batch|crossEncoder>]",
@@ -142,6 +144,29 @@ func newRRFSearchCmd() *cobra.Command {
 
 			// print top results
 			printRRFResults(finalResults, limit, rerankMethod, query, k)
+
+			// perform LLM evaluation of results
+			if evaluate {
+				ctx := context.Background()
+				// create list of results as string
+				parts := make([]string, limit)
+				for i, doc := range finalResults[:limit] {
+					parts[i] = fmt.Sprintf(
+						"ID: %d\nTitle: %s\nDescription: %s",
+						doc.DocID,
+						doc.Title,
+						doc.Description,
+					)
+				}
+				resultListStr := strings.Join(parts, "\n\n")
+
+				scores, err := llms.EvaluateResults(ctx, query, resultListStr)
+				if err != nil {
+					log.Fatalf("❌ Failed to perform results evaluation: %v\n", err)
+				}
+				printRRFEvaluationResults(finalResults, limit, scores)
+			}
+
 		},
 	}
 	cmd.Flags().IntVar(&limit, "limit", 5, "Limit the amount of results")
@@ -149,6 +174,7 @@ func newRRFSearchCmd() *cobra.Command {
 	cmd.Flags().StringVar(&enhance, "enhance", "", "Query enhancement method. [choices: spell|rewrite|expand]")
 	cmd.Flags().StringVar(&rerankMethod, "rerankMethod", "", "Re-ranking method. [choices: individual|batch|crossEncoder]")
 	cmd.Flags().BoolVar(&debug, "debug", false, "Enable debug logging")
+	cmd.Flags().BoolVar(&evaluate, "evaluate", false, "Add LLM evaluation to the results")
 
 	return cmd
 }
@@ -208,4 +234,22 @@ func printRRFResults(
 		}
 		fmt.Printf("\t%s...\n\n", desc)
 	}
+}
+
+func printRRFEvaluationResults(
+	results []methods.RRFSearchReRankedResult,
+	limit int,
+	scores []int,
+) {
+	if len(scores) != limit {
+		fmt.Println("LLM evaluation gave inconsistent results.")
+		return
+	}
+
+	fmt.Println("LLM evaluation results:")
+
+	for i, result := range results[:limit] {
+		fmt.Printf("%d. %s: %d/3\n", i+1, result.Title, scores[i])
+	}
+
 }

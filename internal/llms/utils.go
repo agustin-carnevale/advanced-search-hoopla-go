@@ -27,11 +27,6 @@ func GeminiGenerateContent(ctx context.Context, prompt string) (string, error) {
 		{Parts: []*genai.Part{{Text: prompt}}},
 	}
 
-	// TODO: fix this and make it work
-	// genConfig := &genai.GenerateContentConfig{
-	// 	MaxOutputTokens: 8,
-	// }
-
 	// Call GenerateContent
 	response, err := client.Models.GenerateContent(ctx, "gemini-3-flash-preview", contents, nil)
 	if err != nil {
