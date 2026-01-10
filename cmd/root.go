@@ -27,6 +27,7 @@ import (
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/evaluation"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/hybrid"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/keyword"
+	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/rag"
 	"github.com/agustin-carnevale/advanced-search-hoopla-go/cmd/semantic"
 	"github.com/spf13/cobra"
 )
@@ -45,9 +46,9 @@ func Execute() {
 }
 
 func init() {
-	// Add keyword, semantic and hybrid subcommands
 	rootCmd.AddCommand(keyword.KeywordCmd)
 	rootCmd.AddCommand(semantic.SemanticCmd)
 	rootCmd.AddCommand(hybrid.HybridCmd)
 	rootCmd.AddCommand(evaluation.EvaluationCmd)
+	rootCmd.AddCommand(rag.RAGCmd)
 }
