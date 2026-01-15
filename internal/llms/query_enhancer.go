@@ -19,7 +19,11 @@ func QueryEnhanceSpell(ctx context.Context, query string) (string, error) {
 	)
 
 	// Call llm
-	return GeminiGenerateContent(ctx, prompt)
+	text, _, err := GeminiGenerateContent(ctx, prompt)
+	if err != nil {
+		return "", err
+	}
+	return text, nil
 }
 
 func QueryEnhanceRewrite(ctx context.Context, query string) (string, error) {
@@ -48,7 +52,11 @@ func QueryEnhanceRewrite(ctx context.Context, query string) (string, error) {
 	)
 
 	// Call llm
-	return GeminiGenerateContent(ctx, prompt)
+	text, _, err := GeminiGenerateContent(ctx, prompt)
+	if err != nil {
+		return "", err
+	}
+	return text, nil
 }
 func QueryEnhanceExpand(ctx context.Context, query string) (string, error) {
 
@@ -74,7 +82,11 @@ func QueryEnhanceExpand(ctx context.Context, query string) (string, error) {
 	)
 
 	// Call llm
-	return GeminiGenerateContent(ctx, prompt)
+	text, _, err := GeminiGenerateContent(ctx, prompt)
+	if err != nil {
+		return "", err
+	}
+	return text, nil
 }
 
 func PreProcessQuery(ctx context.Context, query string, enhance string) (string, error) {

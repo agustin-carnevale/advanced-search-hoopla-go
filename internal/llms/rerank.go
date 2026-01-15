@@ -61,7 +61,7 @@ Return ONLY a single integer from 0-10, nothing else. No explanation, no text, j
 	)
 
 	// Call to llm
-	resp, err := GeminiGenerateContent(ctx, prompt)
+	resp, _, err := GeminiGenerateContent(ctx, prompt)
 	if err != nil {
 		return 0.0, err
 	}
@@ -107,7 +107,7 @@ func ReRankDocsBatch(ctx context.Context, query string, docsListStr string) ([]i
 	)
 
 	// Call to llm
-	jsonData, err := GeminiGenerateContent(ctx, prompt)
+	jsonData, _, err := GeminiGenerateContent(ctx, prompt)
 	if err != nil {
 		return nil, err
 	}

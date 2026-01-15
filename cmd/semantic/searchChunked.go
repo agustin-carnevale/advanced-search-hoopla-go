@@ -20,7 +20,7 @@ func newSearchChunkedCmd() *cobra.Command {
 		Short: "Chunked semantic search for query among all documents/movies",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) < 1 {
-				fmt.Println("❌ Please provide a query to embed.")
+				fmt.Println("❌ Please provide a query.")
 				return
 			}
 			query := args[0]

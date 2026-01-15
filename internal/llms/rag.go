@@ -22,7 +22,7 @@ func ResultsAugmentation(ctx context.Context, query string, resultsStr string) (
 	)
 
 	// Call to llm
-	response, err := GeminiGenerateContent(ctx, prompt)
+	response, _, err := GeminiGenerateContent(ctx, prompt)
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +50,7 @@ func SummarizeResults(ctx context.Context, query string, resultsStr string) (str
 	)
 
 	// Call to llm
-	response, err := GeminiGenerateContent(ctx, prompt)
+	response, _, err := GeminiGenerateContent(ctx, prompt)
 	if err != nil {
 		return "", err
 	}
@@ -85,7 +85,7 @@ func ResultsWithCitations(ctx context.Context, query string, resultsStr string) 
 	)
 
 	// Call to llm
-	response, err := GeminiGenerateContent(ctx, prompt)
+	response, _, err := GeminiGenerateContent(ctx, prompt)
 	if err != nil {
 		return "", err
 	}
@@ -121,7 +121,7 @@ func AnswerQuestionFromResults(ctx context.Context, query string, resultsStr str
 	)
 
 	// Call to llm
-	response, err := GeminiGenerateContent(ctx, prompt)
+	response, _, err := GeminiGenerateContent(ctx, prompt)
 	if err != nil {
 		return "", err
 	}

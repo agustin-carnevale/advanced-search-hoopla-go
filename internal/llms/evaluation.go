@@ -32,7 +32,7 @@ func EvaluateResults(ctx context.Context, query string, resultsListStr string) (
 	)
 
 	// Call to llm
-	jsonData, err := GeminiGenerateContent(ctx, prompt)
+	jsonData, _, err := GeminiGenerateContent(ctx, prompt)
 	if err != nil {
 		return nil, err
 	}
