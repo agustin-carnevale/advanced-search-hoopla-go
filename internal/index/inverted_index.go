@@ -18,7 +18,7 @@ import (
 type SearchResult struct {
 	DocID int
 	Score float64
-	Movie model.Movie // optional: include your movie struct here if needed
+	Movie model.Movie
 }
 
 type InvertedIndex struct {
