@@ -1,8 +1,11 @@
 # Data / DBs
-data
+data/movies.json
 cache
 
 .env
 
 advanced-search-hoopla-go
 hoopla-go
+hoopla
+
+tools

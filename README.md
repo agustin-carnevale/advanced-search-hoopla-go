@@ -51,6 +51,69 @@ This CLI experiment showcases how to combine _multiple search strategies_, norma
 - Error analysis, debug/tracing, structured logs
 - LLM evaluation
 
+## Getting Started
+
+Prerequisites:
+
+- Go 1.22+
+- make
+- curl or wget (for dataset download)
+
+Setup:
+
+```bash
+git clone https://github.com/agustin-carnevale/advanced-search-hoopla-go
+cd advanced-search-hoopla-go
+
+make prepare
+make dataset
+make build
+```
+
+This will:
+
+- scaffold a .env file (from .env.example)
+- download the movies dataset into data/
+- build the hoopla CLI binary
+
+Before running the CLI, edit .env and add the required API keys (e.g. Gemini).
+
+### Running the CLI
+
+```bash
+./hoopla --help
+```
+
+Or install it globally:
+
+```bash
+make install
+hoopla --help
+```
+
+You can explore any command level using `--help`:
+
+```bash
+hoopla keyword --help
+hoopla keyword bm25search --help
+```
+
+## Commands
+
+Hoopla is organized into command groups, each representing a major search or retrieval strategy.
+
+```bash
+hoopla
+├── keyword         Classical keyword-based retrieval
+├── semantic        Vector-based semantic search
+├── hybrid          Hybrid ranking strategies
+├── rag             Retrieval-Augmented Generation pipelines
+├── multimodal      Vision + text experiments
+├── evaluation      Evaluation and benchmarking tools
+```
+
+See more about commands [here](commands.md)
+
 ## Design Decisions & Architecture Overview
 
 - **Idiomatic Project Structure**: Follows the standard Go `cmd/` and `internal/` layout to clearly separate CLI concerns from core search and ranking logic, keeping the domain code modular and testable.

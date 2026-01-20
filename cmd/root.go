@@ -34,23 +34,23 @@ import (
 )
 
 // rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
-	Use:   "advanced-search-hoopla-go",
+var RootCmd = &cobra.Command{
+	Use:   "hoopla",
 	Short: "Advanced search and RAG using keyword, semantic and hybrid techniques",
 }
 
 func Execute() {
-	err := rootCmd.Execute()
+	err := RootCmd.Execute()
 	if err != nil {
 		os.Exit(1)
 	}
 }
 
 func init() {
-	rootCmd.AddCommand(keyword.KeywordCmd)
-	rootCmd.AddCommand(semantic.SemanticCmd)
-	rootCmd.AddCommand(hybrid.HybridCmd)
-	rootCmd.AddCommand(evaluation.EvaluationCmd)
-	rootCmd.AddCommand(rag.RAGCmd)
-	rootCmd.AddCommand(multimodal.MultimodalCmd)
+	RootCmd.AddCommand(keyword.KeywordCmd)
+	RootCmd.AddCommand(semantic.SemanticCmd)
+	RootCmd.AddCommand(hybrid.HybridCmd)
+	RootCmd.AddCommand(evaluation.EvaluationCmd)
+	RootCmd.AddCommand(rag.RAGCmd)
+	RootCmd.AddCommand(multimodal.MultimodalCmd)
 }

@@ -16,8 +16,8 @@ func newDescribeImageCmd() *cobra.Command {
 	var imagePath string
 
 	cmd := &cobra.Command{
-		Use:   "describeImage <query>",
-		Short: "Use RAG to summarize the results with an LLM.",
+		Use:   "describeImage <query> --imagePath <string>",
+		Short: "Use llm to describe image from binary",
 		Run: func(cmd *cobra.Command, args []string) {
 
 			if len(args) < 1 {
@@ -49,13 +49,13 @@ func newDescribeImageCmd() *cobra.Command {
 
 		}}
 
-	cmd.Flags().StringVar(&imagePath, "image", "", "Path to the image.")
+	cmd.Flags().StringVar(&imagePath, "imagePath", "", "Path to the image.")
 
 	return cmd
 }
 
 func init() {
 	describeImageCmd := newDescribeImageCmd()
-	describeImageCmd.MarkFlagRequired("image")
+	describeImageCmd.MarkFlagRequired("imagePath")
 	MultimodalCmd.AddCommand(describeImageCmd)
 }
