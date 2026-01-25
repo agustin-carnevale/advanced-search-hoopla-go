@@ -51,6 +51,11 @@ This CLI experiment showcases how to combine _multiple search strategies_, norma
 - Error analysis, debug/tracing, structured logs
 - LLM evaluation
 
+### Multimodal
+
+- Describe image with LLMs
+- Image Search: search among docs from image file
+
 ## Getting Started
 
 Prerequisites:
